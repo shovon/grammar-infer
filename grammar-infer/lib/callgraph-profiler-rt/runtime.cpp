@@ -16,7 +16,7 @@ extern "C" {
   #define GIPROF(X) G1Pr0_##X
 
   FILE* GIPROF(file) = fopen("test.txt" , "r");
-  FILE* GIPROF(myfile) = fopen("../../trace-analyzer/analyzer/tests/trace.txt", "w");
+  FILE* GIPROF(myfile) = fopen("trace.txt", "w");
 
   struct GIPROF(instruction) {
     uint64_t sid;
@@ -38,9 +38,10 @@ extern "C" {
     int count = 0;
     std::string token;
     std::string delimiter = "|";
-
+    
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
+      printf("%s\n", token.c_str());
       if (count == 0) {
         in.sid = stoi(token);
       }
@@ -66,7 +67,7 @@ extern "C" {
         }
 
       } else if(count == 3) {
-        in.line = stoi(token);
+        in.line = stoll(token);
       } else if (count == 4 && token != "") {
         if (in.type == "Predicate" || in.type == "MethodCall") {
           unsigned index = GIPROF(instructions).size() - 1;
@@ -81,10 +82,11 @@ extern "C" {
       }
 
       count++;
+      printf("string length %lu, pos: %llu, delimiter length: %lu\n", s.length(), pos, delimiter.length());
       s.erase(0, pos + delimiter.length());
+      printf("Done\n");
     }
-
     GIPROF(instructions).push_back(in);
-    fprintf(GIPROF(myfile), "%lu|%s|%lu|%lu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
+    fprintf(GIPROF(myfile), "%llu|%s|%llu|%llu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
   }
 }

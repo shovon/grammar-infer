@@ -179,8 +179,7 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
       }
     }
     label:
-    // TODO: check to see what all of this is about.
-    int coolKids = 3;
+    continue;
   }
   for(auto s : statements) {
     handleCalledFunction(m, s, fMap, instructionIds);

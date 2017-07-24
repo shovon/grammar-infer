@@ -19,7 +19,8 @@ uint64_t idCounter = 0;
 vector<instruction> parseInstructions() {
 	string line;
 	std::vector<instruction> instructions;
-	ifstream myfile ("../analyzer/tests/trace.txt");
+	// TODO: soft code this.
+	ifstream myfile ("trace.txt");
 	std::string token;
 	std::string delimiter = "|";
 	std::string s;
@@ -37,7 +38,7 @@ vector<instruction> parseInstructions() {
 			} else if (count == 2) {
 				in.post = stoi(token);
 			} else if (count == 3)  {
-				in.line = stoi(token);
+				in.line = stoll(token);
 			} else if (count == 4) {
 				in.val = token;
 			}
