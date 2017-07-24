@@ -1,1 +1,3 @@
-Run grammar-infer to generate a trace for trace-analyzer
+# TODO
+
+Document on how this actually works.
