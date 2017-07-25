@@ -11,6 +11,8 @@
 #include <set>
 
 #include "Tree.h"
+#include "cxxopts.hpp"
+#include "enumerate.hpp"
 
 using namespace std;
 
@@ -20,7 +22,7 @@ vector<instruction> parseInstructions() {
 	string line;
 	std::vector<instruction> instructions;
 	// TODO: soft code this.
-	ifstream myfile ("ended_trace.txt");
+	ifstream myfile ("trace.txt");
 	std::string token;
 	std::string delimiter = "|";
 	std::string s;
@@ -102,7 +104,7 @@ void constructTree(
 
 void transformTree(std::shared_ptr<Node> node) {
 	for (int i = 0; i < node->children.size(); i++) {
-		if(node->children.at(i)->children.size() == 1) {
+		if (node->children.at(i)->children.size() == 1) {
 			node->children.at(i)->children.at(0)->parent = node;
 			node->children.at(i) = node->children.at(i)->children.at(0);
 		}
@@ -129,7 +131,7 @@ void printNonTerminals(std::shared_ptr<Node> node, std::ostream& os) {
 	if (node->children.size() != 0) {
 		os << node->s << "\n";
 	}
-	for (int i=0; i < node->children.size(); i++) {
+	for (int i = 0; i < node->children.size(); i++) {
 		printNonTerminals(node->children.at(i), os);
 	}
 }
@@ -138,7 +140,7 @@ void printTerminals(std::shared_ptr<Node> node, std::vector<std::string> &vec) {
 	if (node->children.size() == 0) {
 		vec.push_back(node->s);
 	}
-	for (int i=0; i < node->children.size(); i++) {
+	for (int i = 0; i < node->children.size(); i++) {
 		printTerminals(node->children.at(i), vec);
 	}
 }
@@ -146,7 +148,7 @@ void printTerminals(std::shared_ptr<Node> node, std::vector<std::string> &vec) {
 void printRules(std::shared_ptr<Node> node, std::ostream& os) {
 	if (node->children.size() != 0) {
 		os << node->s << " -> ";
-		for (int i=0; i < node->children.size(); i++) {
+		for (int i = 0; i < node->children.size(); i++) {
 			if (i == node->children.size() -1) {
 				os << node->children.at(i)->s;
 			} else {
@@ -177,27 +179,59 @@ void makeGrammar(std::shared_ptr<Node> root, std::ostream& os) {
 	printRules(root, os);
 }
 
-int main() {
-	vector<instruction> instructions = parseInstructions();
-	vector<std::shared_ptr<Node> > cds;
-	int index = -1;
-	std::shared_ptr<Node> n;
-	Tree tree(n);
+int main(int argc, char* argv[]) {
+	try {
+		cxxopts::Options options(argv[0], "Parse the trace for generating grammar\n");
+		options.add_options()
+			("t,trace", "The trace file", cxxopts::value<std::string>())
+			("c,csv", "The CSV metadata output", cxxopts::value<std::string>())
+			("g,grammar", "The grammar tree output", cxxopts::value<std::string>())
+		;
 
-	for(auto in : instructions) {
-		constructTree(in, cds, tree, index);
+		options.parse(argc, argv);
+
+		if (!options.count("t")) {
+			std::cout << "Please supply a trace file" << std::endl << std::endl;
+			std::cout << options.help() << std::endl;
+			exit(1);
+		}
+
+		if (!options.count("g")) {
+			std::cout << "Please supply a trace file" << std::endl << std::endl;
+			std::cout << options.help() << std::endl;
+			exit(1);
+		}
+
+		auto instructions = parseInstructions();
+		vector<std::shared_ptr<Node> > cds;
+		int index = -1;
+		std::shared_ptr<Node> n;
+		Tree tree(n);
+
+		for(auto in : instructions) {
+			constructTree(in, cds, tree, index);
+		}
+
+		transformTree(tree.root);
+
+		// TODO: remove the hard dependency on these file names.
+
+		if (options.count("c")) {
+			ofstream csvfile;
+			auto& csvFilename = options["c"].as<std::string>();
+			csvfile.open(csvFilename);
+			generateCSV(tree.root, csvfile);
+		}
+
+		ofstream grammar;
+		auto& grammarFilename = options["g"].as<std::string>();
+		grammar.open(grammarFilename);
+		makeGrammar(tree.root, grammar);
+
+	} catch (const cxxopts::OptionException& e) {
+		std::cout << "error parsing options: " << e.what() << std::endl;
+    exit(1);
 	}
-
-	transformTree(tree.root);
-
-	ofstream csvfile;
-	ofstream grammar;
-	// TODO: remove the hard dependency on these file names.
-	csvfile.open("file.csv");
-	grammar.open("grammar.txt");
-	generateCSV(tree.root, csvfile);
-
-	makeGrammar(tree.root, grammar);
 
 	return 0;
 }
