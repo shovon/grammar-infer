@@ -94,6 +94,8 @@ findFgetc(llvm::Value* val, DenseMap<Instruction*, Instruction*> fMap) {
 bool
 ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
 
+  auto& context = m.getContext();
+
   std::vector<statement> statements;
   llvm::DenseMap<Instruction*, Instruction*> fMap;
 
@@ -180,6 +182,14 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
   }
 
   handleAllFgetcFunctions(m);
+
+  auto* voidTy = Type::getVoidTy(context);
+  auto* programEnded = m.getOrInsertFunction(
+    "G1Pr0_programEnded",
+    voidTy,
+    nullptr
+  );
+  llvm::appendToGlobalDtors(m, llvm::cast<llvm::Function>(programEnded), 0);
 
   return true;
 }

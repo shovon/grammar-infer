@@ -184,6 +184,7 @@ int main() {
 
 	ofstream csvfile;
 	ofstream grammar;
+	// TODO: remove the hard dependency on these file names.
 	csvfile.open("file.csv");
 	grammar.open("grammar.txt");
 	generateCSV(tree.root, csvfile);

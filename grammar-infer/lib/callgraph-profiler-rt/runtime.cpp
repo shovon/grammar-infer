@@ -17,7 +17,8 @@ extern "C" {
   #define GIPROF(X) G1Pr0_##X
 
   FILE* GIPROF(file) = fopen("test.txt" , "r");
-  FILE* GIPROF(myfile) = fopen("trace.txt", "w");
+  // FILE* GIPROF(myfile) = fopen("trace.txt", "w");
+  FILE* GIPROF(traceFile) = fopen("trace.txt", "w");
 
   struct GIPROF(instruction) {
     uint64_t sid;
@@ -27,8 +28,10 @@ extern "C" {
     uint64_t line;
   };
 
-  std::vector<GIPROF(instruction)> GIPROF(instructions);
-  std::queue<char> GIPROF(fgetcCharacters);
+  std::vector<GIPROF(instruction)> *GIPROF(instructions)
+    = new std::vector<GIPROF(instruction)>();
+  std::queue<char> *GIPROF(fgetcCharacters)
+    = new std::queue<char>();
 
   void
   GIPROF(fgetcCalled)(int cint) {
@@ -37,7 +40,27 @@ extern "C" {
 
     char c = cint;
 
-    GIPROF(fgetcCharacters).push(c);
+    GIPROF(fgetcCharacters)->push(c);
+  }
+
+  void
+  GIPROF(programEnded)() {
+    for (auto& inst : *GIPROF(instructions)) {
+      if (inst.type == "GetChar") {
+        inst.val = GIPROF(fgetcCharacters)->front();
+        GIPROF(fgetcCharacters)->pop();
+        inst.val += "|";
+      }
+      fprintf(
+        GIPROF(traceFile),
+        "%llu|%s|%llu|%llu|%s\n",
+        inst.sid,
+        inst.type.c_str(),
+        inst.post,
+        inst.line,
+        inst.val.c_str()
+      );
+    }
   }
 
   void
@@ -66,11 +89,11 @@ extern "C" {
           in.val = fgetc(GIPROF(file));
           in.val += "|";
         } else if (in.type == "UngetChar") {
-          unsigned index = GIPROF(instructions).size() - 1;
-          while (GIPROF(instructions).at(index).type != "GetChar") {
+          unsigned index = GIPROF(instructions)->size() - 1;
+          while (GIPROF(instructions)->at(index).type != "GetChar") {
             index--;
           }
-          char c = GIPROF(instructions).at(index).val[0];
+          char c = GIPROF(instructions)->at(index).val[0];
           ungetc(c, GIPROF(file));
         } else if (in.type == "MethodCall") {
           in.post = in.sid + 1;
@@ -79,21 +102,21 @@ extern "C" {
         in.line = stoll(token);
       } else if (count == 4 && token != "") {
         if (in.type == "Predicate" || in.type == "MethodCall") {
-          unsigned index = GIPROF(instructions).size() - 1;
+          unsigned index = GIPROF(instructions)->size() - 1;
           //TODO get last getchar related to operand
-          while (GIPROF(instructions).at(index).type != "GetChar") {
+          while (GIPROF(instructions)->at(index).type != "GetChar") {
             index--;
           }
-          in.val = GIPROF(instructions).at(index).val;
+          in.val = GIPROF(instructions)->at(index).val;
         }
       }
 
       count++;
       s.erase(0, pos + delimiter.length());
     }
-    GIPROF(instructions).push_back(in);
+    GIPROF(instructions)->push_back(in);
 
-    fprintf(GIPROF(myfile), "%llu|%s|%llu|%llu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
+    // fprintf(GIPROF(myfile), "%llu|%s|%llu|%llu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
   }
 
 }
