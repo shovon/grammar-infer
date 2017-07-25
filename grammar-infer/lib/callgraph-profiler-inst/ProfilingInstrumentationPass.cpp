@@ -53,57 +53,56 @@ void handleCalledFunction(
   uint64_t> ids
 );
 
+/**
+ * Recursively looks for fgetc instructions.
+ */
 llvm::Instruction*
-find(llvm::Value* val, DenseMap<Instruction*, Instruction*> fMap) {
-    if (!isa<User>(val))  //Base case
-    {
-      return NULL;
-    }
-
-    auto* value = dyn_cast<User>(val);  //Need it in User form to use operand functions
-    
-    if (auto* AI = dyn_cast<CallInst>(value)) {  //Is call, possibly a read
-      auto* c = AI->getCalledFunction();
-      if (c->getName().equals("fgetc")) { //Is fgetc    
-        return AI;
-      }
-    }
-    
-      //Check each operand for traces of fgetc
-    for (unsigned j = 0; j < value->getNumOperands(); j++)
-    {
-
-      Instruction* v = find(value->getOperand(j), fMap);
-      if (v != NULL)
-      {
-        return v;
-      }
-    }
-    if (auto* AI = dyn_cast<Instruction>(value))
-    {
-      if (fMap[AI])
-      {
-        return fMap[AI];
-      }
-    }
+findFgetc(llvm::Value* val, DenseMap<Instruction*, Instruction*> fMap) {
+  if (!isa<User>(val)) { // Base case
     return NULL;
-
   }
+
+  // Need it in User form to use operand functions
+  auto* value = dyn_cast<User>(val);
+  
+  if (auto* AI = dyn_cast<CallInst>(value)) { // Is call, possibly a read
+    auto* c = AI->getCalledFunction();
+    // Is fgetc
+    if (c->getName().equals("fgetc")) {   
+      return AI;
+    }
+  }
+  
+  // Check each operand for traces of fgetc
+  for (unsigned j = 0; j < value->getNumOperands(); j++) {
+    Instruction* v = findFgetc(value->getOperand(j), fMap);
+    if (v != NULL) {
+      return v;
+    }
+  }
+  if (auto* AI = dyn_cast<Instruction>(value)) {
+    if (fMap[AI]) {
+      return fMap[AI];
+    }
+  }
+
+  return NULL;
+}
 
 bool
 ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
 
   std::vector<statement> statements;
-  llvm::DenseMap<Instruction*, statement*> sMap;
   llvm::DenseMap<Instruction*, Instruction*> fMap;
+
   int counter = 0;
 
   //Go through each instruction
   for (auto& f : m) {
     for (auto& bb : f) {
       for (auto& i : bb) {
-        statement s;	
-        sMap[&i] = &s;  //Store statement to map
+        statement s;
+  
         s.instruction = &i;
         
         if (DILocation *Loc = i.getDebugLoc()) {
@@ -111,45 +110,35 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
         }
 
         if (auto* AI = dyn_cast<CallInst>(&i)) {
-          //Is call, possibly a read
+          // Is call, possibly a read
           auto* c = AI->getCalledFunction();
 
           if (c->getName().equals("fgetc")) {
-            //Is fgetc     
             s.type = "GetChar";
           } else if(c->getName().equals("ungetc")) {
             s.type = "UngetChar";
           } else if(!c->isDeclaration()) {
             s.type = "MethodCall";
-            for (auto& arg : AI->arg_operands()) {
-              auto* inst = dyn_cast<Instruction>(arg);
-              if (inst) {  
-                find(inst, fMap);
-              }
-            }
-
           } else {
             s.type = "Other";
           }
-
-        } else if (isa<CmpInst>(&i)) {	//Is a predicate
+        } else if (isa<CmpInst>(&i)) { //Is a predicate
           s.type = "Predicate";
-          find(&i, fMap);
         } else if(isa<StoreInst>(&i)) {
           s.type = "Other";
 
-          Instruction* fi = find(i.getOperand(0), fMap);
+          Instruction* fi = findFgetc(i.getOperand(0), fMap);
           if (fi) {
             if (auto* AI = dyn_cast<Instruction>(i.getOperand(1))) {
-              fMap[AI] = fi;  //Labelling 
+              fMap[AI] = fi; //Labelling 
             }
           }
           else {
-            fMap[AI] = NULL;  //Unlabelling
+            fMap[AI] = NULL; //Unlabelling
           }
         } else if(isa<LoadInst>(&i)) {
           s.type = "Other";
-        } else {      //Other
+        } else {
           s.type = "Other";
         }
 
@@ -163,15 +152,17 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
     }
   }
 
-  for(auto& s : statements) {
-    if(s.type == "Predicate") {
+  // For each statement, assign to it the associated post dominator, if it
+  // exists.
+  for (auto& s : statements) {
+    if (s.type == "Predicate") {
       giprofiler::DomTreePass dtp;
       Function* function = s.instruction->getFunction();
       dtp.runOnFunction(*function);
 
-      for(auto& bb : *s.instruction->getFunction()) {
-        for(auto& i : bb) {
-          if(dtp.immediatePostDominates( &i ,&*s.instruction )) {
+      for (auto& bb : *s.instruction->getFunction()) {
+        for (auto& i : bb) {
+          if (dtp.immediatePostDominates( &i ,&*s.instruction )) {
             s.postDom = instructionIds[&i];
             goto label;
           }
@@ -181,12 +172,20 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
     label:
     continue;
   }
-  for(auto s : statements) {
+
+  for (auto s : statements) {
     handleCalledFunction(m, s, fMap, instructionIds);
   }
+
   return true;
 }
 
+void
+handleFgetcFunction(
+  llvm::Module& m
+) {
+  // TODO: implement.
+}
 
 void
 handleCalledFunction(
@@ -202,14 +201,15 @@ handleCalledFunction(
   std::string sid = to_string(s.id);
   std::string post = to_string(s.postDom);
   std::string line = to_string(s.line);
-  str = str + sid + "|" + s.type  + "|" + post + "|" + line + "|";
+  str = str + sid + "|" + s.type + "|" + post + "|" + line + "|";
 
-  if(!s.type.compare("Predicate") || !s.type.compare("MethodCall")) {
-    Instruction* f = find(s.instruction, fMap);
+  if (!s.type.compare("Predicate") || !s.type.compare("MethodCall")) {
+    Instruction* f = findFgetc(s.instruction, fMap);
     if (f != NULL) {
-      str+= to_string(ids[f]) + "|";
+      str += to_string(ids[f]) + "|";
     }
   }
+
   StringRef sref(str);
   Constant* val = createConstantString(m, sref);
 
@@ -217,7 +217,6 @@ handleCalledFunction(
   auto* stringTy = Type::getInt8PtrTy(context);
   auto* helperTy = FunctionType::get(voidTy, stringTy, false);
 
-  auto* called = m.getOrInsertFunction(
-    "G1Pr0_called", helperTy);
+  auto* called = m.getOrInsertFunction("G1Pr0_called", helperTy);
   builder.CreateCall(called, val);
 }

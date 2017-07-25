@@ -27,7 +27,6 @@ char* PText(FILE *f);
 void error(char *c);
 
 int main() {
-	printf("Good\n");
 	FILE *f;
 	f = fopen("test.txt", "r");
 	Doc *d = PDoc(f);
@@ -74,6 +73,7 @@ Head* PHead(FILE *f) {
 
 Body* PBody(FILE *f) {
 	Body *b = malloc(sizeof(Body));
+	b->tag = NULL;
 	char c = fgetc(f);
 	if(c == 'B') {
 		PTag(f, b);
@@ -92,7 +92,11 @@ void PTag(FILE *f, Body *b) {
 	 	Tag *t = malloc(sizeof(Tag));
 	 	t->text = PText(f);
 	 	count++;
-	 	b->tag = realloc(b->tag, sizeof(Tag) * count);
+		if (b->tag != NULL) {
+		 	b->tag = realloc(b->tag, sizeof(Tag) * (count + 1));
+		} else {
+			b->tag = malloc(sizeof(Tag) * (count + 1));
+		}
 	 	b->tag[count - 1] = t;
 
 	 	c = fgetc(f);

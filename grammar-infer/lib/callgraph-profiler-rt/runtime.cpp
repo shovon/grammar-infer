@@ -41,7 +41,6 @@ extern "C" {
     
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
-      printf("%s\n", token.c_str());
       if (count == 0) {
         in.sid = stoi(token);
       }
@@ -53,40 +52,34 @@ extern "C" {
         if (in.type == "GetChar") {
           in.val = fgetc(GIPROF(file));
           in.val += "|";
-        }
-        else if (in.type == "UngetChar") {
+        } else if (in.type == "UngetChar") {
           unsigned index = GIPROF(instructions).size() - 1;
-          while (GIPROF(instructions).at(index).type != "GetChar")
-          {
-           index--;
-         }
-         char c = GIPROF(instructions).at(index).val[0];
-         ungetc(c, GIPROF(file));
-       } else if(in.type == "MethodCall") {
-        in.post = in.sid + 1;
+          while (GIPROF(instructions).at(index).type != "GetChar") {
+            index--;
+          }
+          char c = GIPROF(instructions).at(index).val[0];
+          ungetc(c, GIPROF(file));
+        } else if (in.type == "MethodCall") {
+          in.post = in.sid + 1;
         }
-
       } else if(count == 3) {
         in.line = stoll(token);
       } else if (count == 4 && token != "") {
         if (in.type == "Predicate" || in.type == "MethodCall") {
           unsigned index = GIPROF(instructions).size() - 1;
-              //TODO get last getchar related to operand
-          while (GIPROF(instructions).at(index).type != "GetChar")
-          {
+          //TODO get last getchar related to operand
+          while (GIPROF(instructions).at(index).type != "GetChar") {
             index--;
           }
           in.val = GIPROF(instructions).at(index).val;
-
         }
       }
 
       count++;
-      printf("string length %lu, pos: %llu, delimiter length: %lu\n", s.length(), pos, delimiter.length());
       s.erase(0, pos + delimiter.length());
-      printf("Done\n");
     }
     GIPROF(instructions).push_back(in);
+
     fprintf(GIPROF(myfile), "%llu|%s|%llu|%llu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
   }
 }
