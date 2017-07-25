@@ -16,7 +16,6 @@ extern "C" {
   // e.g. CGPROF(entry) yields CaLlPrOfIlEr_entry
   #define GIPROF(X) G1Pr0_##X
 
-  FILE* GIPROF(file) = fopen("test.txt" , "r");
   FILE* GIPROF(traceFile) = fopen("ended_trace.txt", "w");
 
   struct GIPROF(instruction) {
@@ -98,19 +97,7 @@ extern "C" {
       else if (count == 2) {
         in.post = stoi(token);
         if (in.type == "GetChar") {
-          // SUGGEST: since this is already a GetChar, we don't need to indicate
-          // anything else.
-
-          // TODO: delete the fgetc.
-          // in.val = fgetc(GIPROF(file));
           in.val += "|";
-        } else if (in.type == "UngetChar") {
-          unsigned index = GIPROF(instructions)->size() - 1;
-          while (GIPROF(instructions)->at(index).type != "GetChar") {
-            index--;
-          }
-          char c = GIPROF(instructions)->at(index).val[0];
-          ungetc(c, GIPROF(file));
         } else if (in.type == "MethodCall") {
           in.post = in.sid + 1;
         }
@@ -118,10 +105,7 @@ extern "C" {
         in.line = stoll(token);
       } else if (count == 4 && token != "") {
         if (in.type == "Predicate" || in.type == "MethodCall") {
-          // SUGGEST: perhaps store the index of the GetChar instruction in
-          //   order to retrieve the char later.
           unsigned index = GIPROF(instructions)->size() - 1;
-          //TODO get last getchar related to operand
           while (GIPROF(instructions)->at(index).type != "GetChar") {
             index--;
           }
