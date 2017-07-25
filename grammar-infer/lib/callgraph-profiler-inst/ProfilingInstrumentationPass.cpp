@@ -53,6 +53,8 @@ void handleCalledFunction(
   uint64_t> ids
 );
 
+void handleAllFgetcFunctions(llvm::Module& m);
+
 /**
  * Recursively looks for fgetc instructions.
  */
@@ -177,14 +179,46 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
     handleCalledFunction(m, s, fMap, instructionIds);
   }
 
+  handleAllFgetcFunctions(m);
+
   return true;
 }
 
 void
-handleFgetcFunction(
-  llvm::Module& m
-) {
-  // TODO: implement.
+handleAllFgetcFunctions(llvm::Module& m) {
+  auto& context = m.getContext();
+
+  for (auto& f : m) {
+    for (auto& bb : f) {
+      for (auto& i : bb) {
+        if (!llvm::isa<llvm::CallInst>(&i)) {
+          continue;
+        }
+
+        auto *ci = llvm::cast<llvm::CallInst>(&i);
+        auto *fun = ci->getCalledFunction();
+        if (!fun) {
+          continue;
+        }
+        if (!fun->getName().equals("fgetc")) {
+          continue;
+        }
+
+        IRBuilder<> builder(&i);
+        builder.SetInsertPoint(&bb, ++builder.GetInsertPoint());
+
+        auto *voidTy = Type::getVoidTy(context);
+        auto *intTy = Type::getInt32Ty(context);
+        auto *fgetcCalledType = FunctionType::get(voidTy, intTy, false);
+
+        auto *fgetcCalled = m.getOrInsertFunction(
+          "G1Pr0_fgetcCalled", 
+          fgetcCalledType
+        );
+        builder.CreateCall(fgetcCalled, ci);
+      }
+    }
+  }
 }
 
 void

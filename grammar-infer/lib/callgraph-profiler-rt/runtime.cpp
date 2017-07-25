@@ -6,6 +6,7 @@
 #include <sstream>
 #include <iostream>
 #include <vector>
+#include <queue>
 using namespace std;
 
 extern "C" {
@@ -27,6 +28,17 @@ extern "C" {
   };
 
   std::vector<GIPROF(instruction)> GIPROF(instructions);
+  std::queue<char> GIPROF(fgetcCharacters);
+
+  void
+  GIPROF(fgetcCalled)(int cint) {
+    // The function accepts an int because fgetc returns an int. Otherwise, this
+    // function whould have accepted a char.
+
+    char c = cint;
+
+    GIPROF(fgetcCharacters).push(c);
+  }
 
   void
   GIPROF(called)(char* str) {
@@ -50,6 +62,7 @@ extern "C" {
       else if (count == 2) {
         in.post = stoi(token);
         if (in.type == "GetChar") {
+          // TODO remove this clause.
           in.val = fgetc(GIPROF(file));
           in.val += "|";
         } else if (in.type == "UngetChar") {
@@ -82,4 +95,5 @@ extern "C" {
 
     fprintf(GIPROF(myfile), "%llu|%s|%llu|%llu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
   }
+
 }
