@@ -101,7 +101,6 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
 
   int counter = 0;
 
-  //Go through each instruction
   for (auto& f : m) {
     for (auto& bb : f) {
       for (auto& i : bb) {
@@ -134,11 +133,11 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
           Instruction* fi = findFgetc(i.getOperand(0), fMap);
           if (fi) {
             if (auto* AI = dyn_cast<Instruction>(i.getOperand(1))) {
-              fMap[AI] = fi; //Labelling 
+              fMap[AI] = fi; // Labelling 
             }
           }
           else {
-            fMap[AI] = NULL; //Unlabelling
+            fMap[AI] = NULL; // Unlabelling
           }
         } else if(isa<LoadInst>(&i)) {
           s.type = "Other";
@@ -247,6 +246,7 @@ handleCalledFunction(
   std::string line = to_string(s.line);
   str = str + sid + "|" + s.type + "|" + post + "|" + line + "|";
 
+  // If s.type is either Predicate or MethodCall
   if (!s.type.compare("Predicate") || !s.type.compare("MethodCall")) {
     Instruction* f = findFgetc(s.instruction, fMap);
     if (f != NULL) {

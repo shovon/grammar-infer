@@ -20,7 +20,7 @@ vector<instruction> parseInstructions() {
 	string line;
 	std::vector<instruction> instructions;
 	// TODO: soft code this.
-	ifstream myfile ("trace.txt");
+	ifstream myfile ("ended_trace.txt");
 	std::string token;
 	std::string delimiter = "|";
 	std::string s;
@@ -67,9 +67,16 @@ void updateCDS(vector<std::shared_ptr<Node> > &cds, instruction in, int &index) 
 	}
 }
 
-void constructTree(instruction in, vector<std::shared_ptr<Node> > &cds, Tree &tree, int& index) {
+void constructTree(
+	instruction in,
+	vector<std::shared_ptr<Node> > &cds,
+	Tree &tree,
+	int& index
+) {
 	updateCDS(cds, in, index);
+
 	if ((in.type == "MethodCall" || in.type == "Predicate") && in.val != "") {
+
 		std::shared_ptr<Node> ix(new Node());
 		ix->s = in.val;
 
@@ -77,8 +84,6 @@ void constructTree(instruction in, vector<std::shared_ptr<Node> > &cds, Tree &tr
 		idCounter++;
 
 		while (index < (signed)cds.size() - 1) {
-			
-
 			if (index == -1) {
 				tree.root = cds.at(0);
 			} else {
@@ -88,8 +93,11 @@ void constructTree(instruction in, vector<std::shared_ptr<Node> > &cds, Tree &tr
 
 			index++;
 		}
+
 		cds.at(index)->children.push_back(ix);
+
 	}
+
 }
 
 void transformTree(std::shared_ptr<Node> node) {
@@ -144,7 +152,7 @@ void printRules(std::shared_ptr<Node> node, std::ostream& os) {
 			} else {
 				os << node->children.at(i)->s << " + ";
 			}
-		} 
+		}
 		os << endl;
 	}
 	for (int i=0; i < node->children.size(); i++) {

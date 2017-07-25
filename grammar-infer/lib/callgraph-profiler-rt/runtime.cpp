@@ -17,15 +17,19 @@ extern "C" {
   #define GIPROF(X) G1Pr0_##X
 
   FILE* GIPROF(file) = fopen("test.txt" , "r");
-  // FILE* GIPROF(myfile) = fopen("trace.txt", "w");
-  FILE* GIPROF(traceFile) = fopen("trace.txt", "w");
+  FILE* GIPROF(traceFile) = fopen("ended_trace.txt", "w");
 
   struct GIPROF(instruction) {
+    GIPROF(instruction)() {
+      isParameterizedGetChar = false;
+    }
     uint64_t sid;
     std::string type;
     uint64_t post;
     std::string val;
     uint64_t line;
+    uint64_t lastGetChar;
+    bool isParameterizedGetChar;
   };
 
   std::vector<GIPROF(instruction)> *GIPROF(instructions)
@@ -45,11 +49,15 @@ extern "C" {
 
   void
   GIPROF(programEnded)() {
+    int count = 0;
     for (auto& inst : *GIPROF(instructions)) {
+      count++;
       if (inst.type == "GetChar") {
         inst.val = GIPROF(fgetcCharacters)->front();
         GIPROF(fgetcCharacters)->pop();
         inst.val += "|";
+      } else if (inst.isParameterizedGetChar) {
+        inst.val = GIPROF(instructions)->at(inst.lastGetChar).val;
       }
       fprintf(
         GIPROF(traceFile),
@@ -73,7 +81,12 @@ extern "C" {
     int count = 0;
     std::string token;
     std::string delimiter = "|";
-    
+
+    // TODO: this is where we indicate that we are interested in a particular
+    //   character.
+    //
+    // Look at the SUGGESTs below to understand what needs fixing.
+
     while ((pos = s.find(delimiter)) != std::string::npos) {
       token = s.substr(0, pos);
       if (count == 0) {
@@ -85,8 +98,11 @@ extern "C" {
       else if (count == 2) {
         in.post = stoi(token);
         if (in.type == "GetChar") {
-          // TODO remove this clause.
-          in.val = fgetc(GIPROF(file));
+          // SUGGEST: since this is already a GetChar, we don't need to indicate
+          // anything else.
+
+          // TODO: delete the fgetc.
+          // in.val = fgetc(GIPROF(file));
           in.val += "|";
         } else if (in.type == "UngetChar") {
           unsigned index = GIPROF(instructions)->size() - 1;
@@ -102,12 +118,16 @@ extern "C" {
         in.line = stoll(token);
       } else if (count == 4 && token != "") {
         if (in.type == "Predicate" || in.type == "MethodCall") {
+          // SUGGEST: perhaps store the index of the GetChar instruction in
+          //   order to retrieve the char later.
           unsigned index = GIPROF(instructions)->size() - 1;
           //TODO get last getchar related to operand
           while (GIPROF(instructions)->at(index).type != "GetChar") {
             index--;
           }
           in.val = GIPROF(instructions)->at(index).val;
+          in.lastGetChar = index;
+          in.isParameterizedGetChar = true;
         }
       }
 
@@ -115,8 +135,5 @@ extern "C" {
       s.erase(0, pos + delimiter.length());
     }
     GIPROF(instructions)->push_back(in);
-
-    // fprintf(GIPROF(myfile), "%llu|%s|%llu|%llu|%s\n", in.sid, in.type.c_str(), in.post, in.line, in.val.c_str());
   }
-
 }
