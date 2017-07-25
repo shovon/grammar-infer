@@ -247,6 +247,7 @@ handleCalledFunction(
   str = str + sid + "|" + s.type + "|" + post + "|" + line + "|";
 
   // If s.type is either Predicate or MethodCall
+  // TODO: look into using "equals' rather than "compare"
   if (!s.type.compare("Predicate") || !s.type.compare("MethodCall")) {
     Instruction* f = findFgetc(s.instruction, fMap);
     if (f != NULL) {
