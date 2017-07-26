@@ -4,6 +4,8 @@
 
 ## Usage
 
+**Note**: only tested (and most likely only works on) LLVM 3.9.x.
+
 ```
 # Profiling
 clang -g -c -emit-llvm $SOURCE_FILE.c -o $OUTPUT.bc
@@ -35,7 +37,3 @@ cd trace_build
 cmake <path/to>/trace-analyzer
 make
 ```
-
-## TODO
-
-- Refactor the code
