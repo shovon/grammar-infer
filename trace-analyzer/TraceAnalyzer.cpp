@@ -103,27 +103,29 @@ void constructTree(
 }
 
 void transformTree(std::shared_ptr<Node> node) {
-	for (int i = 0; i < node->children.size(); i++) {
-		if (node->children.at(i)->children.size() == 1) {
-			node->children.at(i)->children.at(0)->parent = node;
+	for (const auto& x : enumerate(node->children)) {
+		const auto i = x.index;
+		const auto& child = x.item;
+		if (child->children.size() == 1) {
+			child->children.at(0)->parent = node;
 			node->children.at(i) = node->children.at(i)->children.at(0);
 		}
 	}
-	for (int i = 0; i < node->children.size(); i++) {
-		transformTree(node->children.at(i));
+	for (auto& child : node->children) {
+		transformTree(child);
 	}
 }
 
 void generateCSV(std::shared_ptr<Node> node, std::ostream& os) {
-	for (int i = 0; i < node->children.size(); i++) {
-		if (node->children.at(i)->children.size() != 0) {
+	for (auto& child : node->children) {
+		if (child->children.size() != 0) {
 			os << node->id << ", " << node->s << ", " << node->in.line << ", "
-				 << node->children.at(i)->id << ", 1" << endl;
+				 << child->id << ", 1" << endl;
 		} else {
 			os << node->id << ", " << node->s << ", " << node->in.line << ", "
-				 << node->children.at(i)->id << "[" + node->children.at(i)->s + "]" << ", 1" << endl;
+				 << child->id << "[" + child->s + "]" << ", 1" << endl;
 		}
-		generateCSV(node->children.at(i), os); 
+		generateCSV(child, os); 
 	}
 }
 
@@ -131,8 +133,8 @@ void printNonTerminals(std::shared_ptr<Node> node, std::ostream& os) {
 	if (node->children.size() != 0) {
 		os << node->s << "\n";
 	}
-	for (int i = 0; i < node->children.size(); i++) {
-		printNonTerminals(node->children.at(i), os);
+	for (auto& child : node->children) {
+		printNonTerminals(child, os);
 	}
 }
 
@@ -140,25 +142,28 @@ void printTerminals(std::shared_ptr<Node> node, std::vector<std::string> &vec) {
 	if (node->children.size() == 0) {
 		vec.push_back(node->s);
 	}
-	for (int i = 0; i < node->children.size(); i++) {
-		printTerminals(node->children.at(i), vec);
+	for (auto& child : node->children) {
+		printTerminals(child, vec);
 	}
 }
 
 void printRules(std::shared_ptr<Node> node, std::ostream& os) {
 	if (node->children.size() != 0) {
 		os << node->s << " -> ";
-		for (int i = 0; i < node->children.size(); i++) {
-			if (i == node->children.size() -1) {
-				os << node->children.at(i)->s;
+		for (const auto& x : enumerate(node->children)) {
+			const auto i = x.index;
+			const auto& child = x.item;
+
+			if (i == node->children.size() - 1) {
+				os << child->s;
 			} else {
-				os << node->children.at(i)->s << " + ";
+				os << child->s << " + ";
 			}
 		}
 		os << endl;
 	}
-	for (int i=0; i < node->children.size(); i++) {
-		printRules(node->children.at(i), os);
+	for (auto& child : node->children) {
+		printRules(child, os);
 	}
 }
 
@@ -213,8 +218,6 @@ int main(int argc, char* argv[]) {
 		}
 
 		transformTree(tree.root);
-
-		// TODO: remove the hard dependency on these file names.
 
 		if (options.count("c")) {
 			ofstream csvfile;
