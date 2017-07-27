@@ -61,7 +61,7 @@ void handleAllFgetcFunctions(llvm::Module& m);
 llvm::Instruction*
 findFgetc(llvm::Value* val, DenseMap<Instruction*, Instruction*> fMap) {
   if (!isa<User>(val)) { // Base case
-    return NULL;
+    return nullptr;
   }
 
   // Need it in User form to use operand functions
@@ -78,7 +78,7 @@ findFgetc(llvm::Value* val, DenseMap<Instruction*, Instruction*> fMap) {
   // Check each operand for traces of fgetc
   for (unsigned j = 0; j < value->getNumOperands(); j++) {
     Instruction* v = findFgetc(value->getOperand(j), fMap);
-    if (v != NULL) {
+    if (v != nullptr) {
       return v;
     }
   }
@@ -88,7 +88,7 @@ findFgetc(llvm::Value* val, DenseMap<Instruction*, Instruction*> fMap) {
     }
   }
 
-  return NULL;
+  return nullptr;
 }
 
 bool
@@ -137,7 +137,7 @@ ProfilingInstrumentationPass::runOnModule(llvm::Module& m) {
             }
           }
           else {
-            fMap[AI] = NULL; // Unlabelling
+            fMap[AI] = nullptr; // Unlabelling
           }
         } else if(isa<LoadInst>(&i)) {
           s.type = "Other";
@@ -250,7 +250,7 @@ handleCalledFunction(
   // TODO: look into using "equals' rather than "compare"
   if (!s.type.compare("Predicate") || !s.type.compare("MethodCall")) {
     Instruction* f = findFgetc(s.instruction, fMap);
-    if (f != NULL) {
+    if (f != nullptr) {
       str += to_string(ids[f]) + "|";
     }
   }

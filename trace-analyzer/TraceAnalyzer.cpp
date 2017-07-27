@@ -59,7 +59,7 @@ void updateCDS(vector<std::shared_ptr<Node> > &cds, instruction in, int &index) 
 	}
 
 	if (in.type == "MethodCall" || in.type == "Predicate") {
-		std::shared_ptr<Node> node(new Node());
+		auto node = std::make_shared<Node>();
 		node->in = in;
 		
 		node->id = idCounter;
@@ -78,8 +78,7 @@ void constructTree(
 	updateCDS(cds, in, index);
 
 	if ((in.type == "MethodCall" || in.type == "Predicate") && in.val != "") {
-
-		std::shared_ptr<Node> ix(new Node());
+		auto ix = std::shared_ptr<Node>();
 		ix->s = in.val;
 
 		ix->id = idCounter;
